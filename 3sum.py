@@ -1,6 +1,7 @@
 import sys, re, math, itertools
+import dominance_merge
 
-A = B = C = L = None
+A = B = C = L = CAs = None
 n = g = s = 0
 Ldim = Flen = 0
 chunklen = blockdim = 0
@@ -43,17 +44,17 @@ def init_var():
 #        if pco[0] < qco[0] or pco[1] < qco[1]:
 #            return False
 #    return True
-#
-#def num_squares_below(path):
-#    d = 0
-#    dim = g*g
-#    ret = dim - d
-#    for step in path[1:]:
-#        if step == 'd': 
-#            d -= 1
-#        else:
-#            ret += (dim - d)
-#    return ret
+
+def num_squares_below(path):
+    d = 0
+    dim = g*g
+    ret = dim - d
+    for step in path[1:]:
+        if step == 'd': 
+            d -= 1
+        else:
+            ret += (dim - d)
+    return ret
 
 def square_between(p, q):
     #return sequence of tiles if p dominates q; return None otherwise
@@ -68,18 +69,53 @@ def square_between(p, q):
                 sappend((pi, j))
             if stepq == 'r': pi += 1
             else: pj -= 1
-        if pi <= qi and step == 'r': pi += 1
+        if pj <= qj: return None
+        if step == 'r': pi += 1
+        else: pj -= 1
     return seq
 
+def action_to_squares(p):
+    pi = 0
+    pj = g
+    squares = []
+    sappend = squares.append
+    for step in p:
+        sappend((pi, pj))
+        if step == 'r': pi += 1
+        else: pj -= 1
+    return squares
+
+def find_blocks(p, q, e, pi):
+    ret = []
+    red = [tuple() for i in range(Ldim)]
+    blue = [tuple() for j in range(Ldim)]
+    dominance_merge.dominance(len(A[0])-1, red + blue, 0)
+
 def preprocess_blocks():
-    global L
-    L = [[None for i in range(g*g//s)] for j in range((n//g)*(n//g))]
-    for e in range(g*g//s):
-        for p in range(g, 2g-1):
-            for q in range(g, 2g-1):
-                for P in permutations('rd', p):
-                    for P_prime in permutations('rd', q):
-                        if not dominance(P_prime, P): continue
+    global L, CAs
+    L = [[None for j in range(Flen)] for i in range((Ldim)*(Ldim))]
+    CAs = []
+    paths = {e:[] for e in range(Flen)}
+    for pathlen in range(g, 2*g - 1):
+        for path in permutations('dr', pathlen):
+            area = num_squares_below(path)
+            if area % s == 0: paths[area/s].append(path)
+    for e, epaths in paths:
+        for p in epaths:
+            for q in paths[e+1]:
+                S = square_between(p, q)
+                if not S: break
+                if len(S) != s: break
+                squaresp = action_to_squares(p)
+                squaresq = action_to_squares(q)
+                for k, l in [squaressp[i] for i in range(len(p)) if p[i] == 'r']:
+                    for k_q, l_q in [squaressq[i] for i in range(len(q)) if q[i] == 'r']:
+                        for pi in permutations(S):
+                            blocks = find_blocks(p, q, e, pi)
+                            for i, j in blocks:
+                                L[i][j] = len(CAs)
+                            if blocks: CAs.append(pi)
+            if not S: break
 
 def main(inp, outp):
     read_input(inp)
@@ -101,5 +137,5 @@ def main(inp, outp):
     print('No triplet (a,b,c) s.t. a + b = c exist')
     return 1
 
-if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+#if __name__ == '__main__':
+#    main(sys.argv[1], sys.argv[2])

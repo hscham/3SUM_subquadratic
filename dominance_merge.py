@@ -2,7 +2,6 @@ import sys, re
 
 d0 = 0
 A = B = None
-output = set()
 
 def read_input(inp):
     global d0, A, B
@@ -91,6 +90,7 @@ def dominance(d, E, level):
     if d >= 0:
         print('\t'*level + 'Proceed to (d-1) of E')
         dominance(d-1, [v for v in H1 if v[0] == 'b'] + [v for v in H2 if v[0] == 'r'], level+1)
+    return output
 
 def print_output(outp):
     with open(outp, 'w+') as fout:
@@ -101,7 +101,10 @@ def main(inp, outp):
     print('input:\nd0=%d'%(d0))
     for v in A + B:
         print(v)
+    global output
+    output = set()
     dominance(d0, A + B, 0)
     print_output(outp)
     
-main(sys.argv[1], sys.argv[2])
+if __name__ == '__main__':
+    main(sys.argv[1], sys.argv[2])
